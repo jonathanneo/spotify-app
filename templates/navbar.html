@@ -1,0 +1,28 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Spotify App</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if auth.has_auth %}
+            <li class="nav-item">
+                <a class="nav-link" href="/currently_playing">Now listening</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="/playlists">My playlists</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/current_user">My account</a>
+            </li>
+        {% endif %}
+        </ul>
+        {% if not auth.has_auth %}
+        <button class="btn btn-outline-success" onclick="location.href='{{ auth.auth_url }}';">Sign in</button>
+        {% else %}
+        <button class="btn btn-outline-success" onclick="location.href='/sign_out';">Sign out</button>
+        {% endif %}
+        </div>
+    </div>
+</nav>
