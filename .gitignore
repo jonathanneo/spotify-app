@@ -1,7 +1,16 @@
+# config files
+app_config.py
+
+# cached files
+.flask_session
+.spotify_caches
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
 
 # C extensions
 *.so
