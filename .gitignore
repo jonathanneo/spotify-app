@@ -1,6 +1,6 @@
 # config files
-app_config.py
-
+config.development.json
+config.development.bat
 # cached files
 .flask_session
 .spotify_caches
