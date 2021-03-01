@@ -16,10 +16,11 @@ function currently_playing() {
     });
 }
 
-currently_playing();
 
 $("#surprise_me").click(() => {
-    $.get("/api/select_top_song", (data) => {
-        currently_playing();
+    $.get("/api/select_top_song", () => {
+        setTimeout(currently_playing, 500); // wait for 500 ms
     });
 });
+
+currently_playing();
