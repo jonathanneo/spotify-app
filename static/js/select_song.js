@@ -22,7 +22,7 @@ function currently_playing() {
 button.click(() => {
     button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...`)
     $.get("/api/select_top_song", () => {
-        setTimeout(currently_playing, 1000); // wait for 1000 ms
+        setTimeout(currently_playing, 2000); // wait for 2000 ms
     });
 });
 

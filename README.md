@@ -1,7 +1,14 @@
 # SpotiML
 
-A pet project, playing around with spotify API features and ML.
+A pet project, playing around with spotify API features and ML. 
 
+A demo app can be found here: https://spotiml.herokuapp.com/
+
+
+# Creating Spotify App
+You will neeed a Spotify App in order to send requests to the Spotify API. To create your App, go here: https://developer.spotify.com/dashboard/applications
+
+After creating your Spotify App, add your local host or domain to the redirect URL: e.g. `http://127.0.0.1:5000`. 
 
 # Running locally
 1. Open terminal and `cd` into root of directory 
