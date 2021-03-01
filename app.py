@@ -61,6 +61,7 @@ def index():
 
     # signed in, display page
     spotify = spotipy.Spotify(auth_manager=auth_manager)
+    print(spotify)
     return render_template("index.html", spotify=spotify, auth=auth)
 
 
@@ -158,7 +159,7 @@ def analyse_my_top_tracks():
     # predict
     all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
     filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
-        choice[0])) & (all_tracks_labeled["popularity"] > 70)]
+        choice[0])) & (all_tracks_labeled["popularity"] > 50)]
     selected_track = random.choices(filtered_tracks["id"].values.tolist(
     ), filtered_tracks["popularity"].values.tolist())
 

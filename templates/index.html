@@ -1,4 +1,50 @@
 {% extends "base.html" %}
 
 {% block body %}
+<div class="row">
+    <div class="jumbotron">
+        <div class="container">
+
+            {% if not auth.has_auth %}
+
+            <h1 class="display-3">SpotiML</h1>
+            <p>
+                A recommendations engine toy project for Spotify.
+            </p>
+            <p>
+                <button class="btn btn-outline-dark" onclick="location.href='{{ auth.auth_url }}';">Sign in</button>
+            </p>
+            {% else %}
+            <h1 class="display-3">Welcome back, {{ spotify.current_user()["display_name"] }}</h1>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+
+        <div class="col-md-4">
+            <h2>Surprise me!</h2>
+            <p>
+                Let the algorithm pick a song for you based on songs you have listened to in the past.
+            </p>
+        </div>
+
+        <div class="col-md-4">
+            <h2>How am I feeling now?</h2>
+            <p>
+                Let the algorithm generate a playlist for you based on the mood you're feeling right now.
+            </p>
+        </div>
+
+        <div class="col-md-4">
+            <h2>Try something new</h2>
+            <p>
+                Let the algorithm pick a popular song for you from a genre you never really listen to.
+            </p>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}
