@@ -1,8 +1,9 @@
-
-console.log("Hello");
 let song_img = $("#song_img");
 let song_name = $("#song_name");
 let song_album_artist = $("#song_album_artist");
+let spinner = $("#spinner");
+let song_content = $("#song_content");
+let button = $("#surprise_me");
 
 function currently_playing() {
     $.get("/api/currently_playing", (data) => {
@@ -13,11 +14,13 @@ function currently_playing() {
         } else {
             song_name.text("No song playing");
         }
+        button.html("Surprise me");
     });
 }
 
 
-$("#surprise_me").click(() => {
+button.click(() => {
+    button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...`)
     $.get("/api/select_top_song", () => {
         setTimeout(currently_playing, 500); // wait for 500 ms
     });
