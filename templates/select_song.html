@@ -3,12 +3,9 @@
 {% block body %}
 <div class="container">
     <div class="row margin-top">
-        <div class="col-12-md d-flex justify-content-center">
-
+        <div class="col-md-3">
+            <!--d-flex justify-content-center-->
             <div id="song_content" class="card" style="width: 18rem; outline: none;">
-                <div class="d-flex justify-content-center">
-                    <div id="spinner" class="spinner-grow; display: none;" role="status"></div>
-                </div>
                 <img id="song_img" class="card-img-top">
                 <div class="card-body">
                     <h4 id="song_name" class="card-text"></h4>
@@ -16,6 +13,10 @@
                     <button class="btn btn-outline-dark" id="surprise_me"></button>
                 </div>
             </div>
+        </div>
+        <div class="col-md-9">
+            <h4>How it works</h4>
+            <img src="../static/img/song_selection.svg" class="img-fluid">
         </div>
     </div>
 </div>
