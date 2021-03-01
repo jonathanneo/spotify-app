@@ -11,7 +11,7 @@ A pet project, playing around with spotify API features and ML.
 
 1. Freeze pip / conda requirements 
     ```
-    conda list --export > requirements.txt
+    python -m pip list --format=freeze > requirements.txt
     ```
 
 2. Update Procfile to use gunicorn to run the web server and set app.py as the application to run: `web: gunicorn app:app`
