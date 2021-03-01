@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import joblib
 import random
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(64)
@@ -76,7 +77,16 @@ def sign_out():
     return redirect('/')
 
 
-@app.route('/playlists')
+@app.route('/select_song')
+def select_song():
+    # assume user has authenticated
+    auth = {
+        "has_auth": True
+    }
+    return render_template("select_song.html", auth=auth)
+
+
+@app.route('/api/playlists')
 def playlists():
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())
@@ -123,8 +133,6 @@ def analyse_my_top_tracks():
     track_features = spotify.audio_features(
         [track["id"] for track in my_tracks])
 
-    # print(my_tracks)
-
     features = []
     for track in track_features:
         features.append([
@@ -143,23 +151,31 @@ def analyse_my_top_tracks():
 
     scaled_features = scaler.transform(features)
     labels = kmeans.predict(scaled_features)
-    # print(labels)
     label_count = {}
     for label in labels:
         if str(label) in label_count.keys():
             label_count[str(label)] += 1
         else:
             label_count[str(label)] = 1
+    return label_count
 
-    print(label_count)
-    # print(f"key: {list(label_count)}")
-    # print(f"value: {list(label_count.values())}")
+
+@app.route('/api/select_top_song')
+def select_top_song():
+    # auth
+    cache_handler = spotipy.cache_handler.CacheFileHandler(
+        cache_path=session_cache_path())
+    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
+    if not auth_manager.validate_token(cache_handler.get_cached_token()):
+        return redirect('/')
+    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    # logic
+    label_count = analyse_my_top_tracks()
     choice = random.choices(list(label_count), list(label_count.values()), k=1)
-    # print(f"choice: {choice[0]}")
-    # predict
+
     all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
     filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
-        choice[0])) & (all_tracks_labeled["popularity"] > 50)]
+        choice[0])) & (all_tracks_labeled["popularity"] > 70)]
     selected_track = random.choices(filtered_tracks["id"].values.tolist(
     ), filtered_tracks["popularity"].values.tolist())
 
@@ -167,10 +183,10 @@ def analyse_my_top_tracks():
 
     spotify.start_playback(uris=[track_info["uri"]])
 
-    return jsonify(f"Now playing: {track_info['name']}")
+    return track_info
 
 
-@app.route('/currently_playing')
+@app.route('/api/currently_playing')
 def currently_playing():
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())
@@ -179,12 +195,12 @@ def currently_playing():
         return redirect('/')
     spotify = spotipy.Spotify(auth_manager=auth_manager)
     track = spotify.current_user_playing_track()
-    if not track is None:
+    if track is not None:
         return track
-    return "No track currently playing."
+    return {"is_playing": False}
 
 
-@app.route('/current_user')
+@app.route('/api/current_user')
 def current_user():
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="row margin-top">
+        <div class="col-12-md d-flex justify-content-center">
+            <div class="card" style="width: 18rem;">
+                <img id="song_img" class="card-img-top">
+                <div class="card-body">
+                    <h4 id="song_name" class="card-text"></h4>
+                    <p id="song_album_artist" class="card-text"></p>
+                    <button class="btn btn-outline-dark" id="surprise_me">Surprise me</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../static/js/select_song.js"></script>
+
+{% endblock %}
