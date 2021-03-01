@@ -5,12 +5,20 @@ import spotipy
 import uuid
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+import joblib
+import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(64)
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = './.flask_session/'
 Session(app)
+
+# load model
+kmeans = joblib.load("ml/model/kmeans.joblib")
+scaler = joblib.load("ml/model/scaler.joblib")
 
 caches_folder = './.spotify_caches/'
 if not os.path.exists(caches_folder):
@@ -113,25 +121,46 @@ def analyse_my_top_tracks():
     # get track features
     track_features = spotify.audio_features(
         [track["id"] for track in my_tracks])
-    for feature in track_features:
-        my_tracks[feature["id"]]["acousticness"] = feature["acousticness"]
-        my_tracks[feature["id"]]["danceability"] = feature["danceability"]
-        my_tracks[feature["id"]]["duration_ms"] = feature["duration_ms"]
-        my_tracks[feature["id"]]["energy"] = feature["energy"]
-        my_tracks[feature["id"]]["instrumentalness"] = feature["instrumentalness"]
-        my_tracks[feature["id"]]["key"] = feature["key"]
-        my_tracks[feature["id"]]["liveness"] = feature["liveness"]
-        my_tracks[feature["id"]]["loudness"] = feature["loudness"]
-        my_tracks[feature["id"]]["speechiness"] = feature["speechiness"]
-        my_tracks[feature["id"]]["tempo"] = feature["tempo"]
-        my_tracks[feature["id"]]["valence"] = feature["valence"]
 
-    # convert to dataframe
-    df = pd.DataFrame(data=my_tracks)
+    features = []
+    for track in track_features:
+        features.append([
+            track["acousticness"],
+            track["danceability"],
+            track["duration_ms"],
+            track["energy"],
+            track["instrumentalness"],
+            track["key"],
+            track["liveness"],
+            track["loudness"],
+            track["speechiness"],
+            track["tempo"],
+            track["valence"]
+        ])
 
-    return jsonify(track_features)
-
+    scaled_features = scaler.transform(features)
+    labels = kmeans.predict(scaled_features)
+    print(labels)
+    label_count = {}
+    for label in labels:
+        if str(label) in label_count.keys():
+            label_count[str(label)] += 1
+        else:
+            label_count[str(label)] = 1
+    print(f"key: {list(label_count)}")
+    print(f"value: {list(label_count.values())}")
+    choice = random.choices(list(label_count), list(label_count.values()), k=1)
+    print(f"choice: {choice[0]}")
     # predict
+    all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
+    filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
+        choice[0])) & (all_tracks_labeled["popularity"] > 70)]
+    selected_track = random.choices(filtered_tracks["id"].values.tolist(
+    ), filtered_tracks["popularity"].values.tolist())
+
+    track_info = spotify.track(selected_track[0])
+
+    return jsonify(track_info["name"])
 
 
 @app.route('/currently_playing')
