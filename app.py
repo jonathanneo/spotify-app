@@ -122,6 +122,8 @@ def analyse_my_top_tracks():
     track_features = spotify.audio_features(
         [track["id"] for track in my_tracks])
 
+    # print(my_tracks)
+
     features = []
     for track in track_features:
         features.append([
@@ -140,17 +142,19 @@ def analyse_my_top_tracks():
 
     scaled_features = scaler.transform(features)
     labels = kmeans.predict(scaled_features)
-    print(labels)
+    # print(labels)
     label_count = {}
     for label in labels:
         if str(label) in label_count.keys():
             label_count[str(label)] += 1
         else:
             label_count[str(label)] = 1
-    print(f"key: {list(label_count)}")
-    print(f"value: {list(label_count.values())}")
+
+    print(label_count)
+    # print(f"key: {list(label_count)}")
+    # print(f"value: {list(label_count.values())}")
     choice = random.choices(list(label_count), list(label_count.values()), k=1)
-    print(f"choice: {choice[0]}")
+    # print(f"choice: {choice[0]}")
     # predict
     all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
     filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
