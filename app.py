@@ -33,7 +33,7 @@ def index():
     # create auth manager
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(scope='user-read-currently-playing playlist-modify-private',
+    auth_manager = spotipy.oauth2.SpotifyOAuth(scope='user-read-currently-playing playlist-modify-private user-top-read',
                                                cache_handler=cache_handler,
                                                show_dialog=True)
 
@@ -75,6 +75,19 @@ def playlists():
 
     spotify = spotipy.Spotify(auth_manager=auth_manager)
     return spotify.current_user_playlists()
+
+
+@app.route('/api/top_tracks')
+def my_top_tracks():
+    cache_handler = spotipy.cache_handler.CacheFileHandler(
+        cache_path=session_cache_path())
+    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
+    if not auth_manager.validate_token(cache_handler.get_cached_token()):
+        return redirect('/')
+    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    top_tracks = spotify.current_user_top_tracks(
+        limit=50, offset=0, time_range="medium_term")
+    return top_tracks
 
 
 @app.route('/currently_playing')
