@@ -1,8 +1,10 @@
 import os
-from flask import Flask, session, request, redirect, render_template, abort
+from flask import Flask, session, request, redirect, render_template, abort, jsonify
 from flask_session import Session
 import spotipy
 import uuid
+import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(64)
@@ -88,6 +90,48 @@ def my_top_tracks():
     top_tracks = spotify.current_user_top_tracks(
         limit=50, offset=0, time_range="medium_term")
     return top_tracks
+
+
+@app.route('/api/analyse_top_tracks')
+def analyse_my_top_tracks():
+    # auth
+    cache_handler = spotipy.cache_handler.CacheFileHandler(
+        cache_path=session_cache_path())
+    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
+    if not auth_manager.validate_token(cache_handler.get_cached_token()):
+        return redirect('/')
+    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    # tracks
+    my_tracks = []
+    top_tracks = my_top_tracks()["items"]
+    # get track ids
+    for track in top_tracks:
+        my_tracks.append({
+            "id": track["id"],
+            "name": track["name"]
+        })
+    # get track features
+    track_features = spotify.audio_features(
+        [track["id"] for track in my_tracks])
+    for feature in track_features:
+        my_tracks[feature["id"]]["acousticness"] = feature["acousticness"]
+        my_tracks[feature["id"]]["danceability"] = feature["danceability"]
+        my_tracks[feature["id"]]["duration_ms"] = feature["duration_ms"]
+        my_tracks[feature["id"]]["energy"] = feature["energy"]
+        my_tracks[feature["id"]]["instrumentalness"] = feature["instrumentalness"]
+        my_tracks[feature["id"]]["key"] = feature["key"]
+        my_tracks[feature["id"]]["liveness"] = feature["liveness"]
+        my_tracks[feature["id"]]["loudness"] = feature["loudness"]
+        my_tracks[feature["id"]]["speechiness"] = feature["speechiness"]
+        my_tracks[feature["id"]]["tempo"] = feature["tempo"]
+        my_tracks[feature["id"]]["valence"] = feature["valence"]
+
+    # convert to dataframe
+    df = pd.DataFrame(data=my_tracks)
+
+    return jsonify(track_features)
+
+    # predict
 
 
 @app.route('/currently_playing')
