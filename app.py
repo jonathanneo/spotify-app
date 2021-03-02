@@ -44,7 +44,7 @@ def index():
     # create auth manager
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(scope='user-read-currently-playing playlist-modify-private user-top-read user-modify-playback-state',
+    auth_manager = spotipy.oauth2.SpotifyOAuth(scope='user-read-currently-playing playlist-modify-private user-top-read user-modify-playback-state user-read-playback-state',
                                                cache_handler=cache_handler,
                                                show_dialog=True)
 
@@ -86,8 +86,7 @@ def select_song():
     return render_template("select_song.html", auth=auth)
 
 
-@app.route('/api/playlists')
-def playlists():
+def handle_auth():
     cache_handler = spotipy.cache_handler.CacheFileHandler(
         cache_path=session_cache_path())
     auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
@@ -95,31 +94,26 @@ def playlists():
         return redirect('/')
 
     spotify = spotipy.Spotify(auth_manager=auth_manager)
+    return spotify
+
+
+@app.route('/api/playlists')
+def playlists():
+    spotify = handle_auth()
     return spotify.current_user_playlists()
 
 
 @app.route('/api/top_tracks')
 def my_top_tracks():
-    cache_handler = spotipy.cache_handler.CacheFileHandler(
-        cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
-    if not auth_manager.validate_token(cache_handler.get_cached_token()):
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    spotify = handle_auth()
     top_tracks = spotify.current_user_top_tracks(
-        limit=50, offset=0, time_range="medium_term")
+        limit=50, offset=0, time_range="short_term")
     return top_tracks
 
 
 @app.route('/api/analyse_top_tracks')
 def analyse_my_top_tracks():
-    # auth
-    cache_handler = spotipy.cache_handler.CacheFileHandler(
-        cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
-    if not auth_manager.validate_token(cache_handler.get_cached_token()):
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    spotify = handle_auth()
     # tracks
     my_tracks = []
     top_tracks = my_top_tracks()["items"]
@@ -160,22 +154,23 @@ def analyse_my_top_tracks():
     return label_count
 
 
+@app.route('/api/devices')
+def get_devices():
+    spotify = handle_auth()
+    devices = spotify.devices()
+    return devices
+
+
 @app.route('/api/select_top_song')
 def select_top_song():
-    # auth
-    cache_handler = spotipy.cache_handler.CacheFileHandler(
-        cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
-    if not auth_manager.validate_token(cache_handler.get_cached_token()):
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    spotify = handle_auth()
     # logic
     label_count = analyse_my_top_tracks()
     choice = random.choices(list(label_count), list(label_count.values()), k=1)
 
     all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
     filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
-        choice[0])) & (all_tracks_labeled["popularity"] > 70)]
+        choice[0]))]
     selected_track = random.choices(filtered_tracks["id"].values.tolist(
     ), filtered_tracks["popularity"].values.tolist())
 
@@ -188,12 +183,7 @@ def select_top_song():
 
 @app.route('/api/currently_playing')
 def currently_playing():
-    cache_handler = spotipy.cache_handler.CacheFileHandler(
-        cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
-    if not auth_manager.validate_token(cache_handler.get_cached_token()):
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    spotify = handle_auth()
     track = spotify.current_user_playing_track()
     if track is not None:
         return track
@@ -202,12 +192,7 @@ def currently_playing():
 
 @app.route('/api/current_user')
 def current_user():
-    cache_handler = spotipy.cache_handler.CacheFileHandler(
-        cache_path=session_cache_path())
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_handler=cache_handler)
-    if not auth_manager.validate_token(cache_handler.get_cached_token()):
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
+    spotify = handle_auth()
     return spotify.current_user()
 
 
