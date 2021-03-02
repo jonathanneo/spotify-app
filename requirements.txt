@@ -10,3 +10,4 @@ pip==21.0.1
 requests==2.25.1
 scikit-learn==0.24.1
 urllib3==1.26.3
+flask-restx==0.2.0

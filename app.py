@@ -1,5 +1,5 @@
 import os
-from flask import Flask, session, request, redirect, render_template, abort, jsonify
+from flask import Flask, session, request, redirect, render_template, abort, jsonify, Blueprint
 from flask_session import Session
 import spotipy
 import uuid
@@ -10,12 +10,20 @@ from sklearn.cluster import KMeans
 import joblib
 import random
 import json
+from flask_restx import Api, Resource, fields
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(64)
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_DIR'] = './.flask_session/'
 Session(app)
+
+blueprint = Blueprint("api", __name__, url_prefix="/api")
+
+
+api = Api(blueprint, doc="/doc/")
+app.register_blueprint(blueprint)
+print(app.url_map)
 
 # load model
 kmeans = joblib.load("ml/model/kmeans.joblib")
@@ -97,103 +105,113 @@ def handle_auth():
     return spotify
 
 
-@app.route('/api/playlists')
-def playlists():
-    spotify = handle_auth()
-    return spotify.current_user_playlists()
+@api.route('/playlists')
+class Playlists(Resource):
+    def get(self):
+        spotify = handle_auth()
+        return spotify.current_user_playlists()
 
 
-@app.route('/api/top_tracks')
-def my_top_tracks():
-    spotify = handle_auth()
-    top_tracks = spotify.current_user_top_tracks(
-        limit=50, offset=0, time_range="short_term")
-    return top_tracks
+@api.route('/top_tracks')
+class TopTracks(Resource):
+    def get(self):
+        spotify = handle_auth()
+        top_tracks = spotify.current_user_top_tracks(
+            limit=50, offset=0, time_range="short_term")
+        return top_tracks
 
 
-@app.route('/api/analyse_top_tracks')
-def analyse_my_top_tracks():
-    spotify = handle_auth()
-    # tracks
-    my_tracks = []
-    top_tracks = my_top_tracks()["items"]
-    # get track ids
-    for track in top_tracks:
-        my_tracks.append({
-            "id": track["id"],
-            "name": track["name"]
-        })
-    # get track features
-    track_features = spotify.audio_features(
-        [track["id"] for track in my_tracks])
+@api.route('/analyse_top_tracks')
+class AnalyseTopTracks(Resource):
+    def get(self):
+        spotify = handle_auth()
+        # tracks
+        my_tracks = []
+        topTracks = TopTracks()
+        top_tracks = topTracks.get()["items"]
+        # get track ids
+        for track in top_tracks:
+            my_tracks.append({
+                "id": track["id"],
+                "name": track["name"]
+            })
+        # get track features
+        track_features = spotify.audio_features(
+            [track["id"] for track in my_tracks])
 
-    features = []
-    for track in track_features:
-        features.append([
-            track["acousticness"],
-            track["danceability"],
-            track["duration_ms"],
-            track["energy"],
-            track["instrumentalness"],
-            track["key"],
-            track["liveness"],
-            track["loudness"],
-            track["speechiness"],
-            track["tempo"],
-            track["valence"]
-        ])
+        features = []
+        for track in track_features:
+            features.append([
+                track["acousticness"],
+                track["danceability"],
+                track["duration_ms"],
+                track["energy"],
+                track["instrumentalness"],
+                track["key"],
+                track["liveness"],
+                track["loudness"],
+                track["speechiness"],
+                track["tempo"],
+                track["valence"]
+            ])
 
-    scaled_features = scaler.transform(features)
-    labels = kmeans.predict(scaled_features)
-    label_count = {}
-    for label in labels:
-        if str(label) in label_count.keys():
-            label_count[str(label)] += 1
-        else:
-            label_count[str(label)] = 1
-    return label_count
-
-
-@app.route('/api/devices')
-def get_devices():
-    spotify = handle_auth()
-    devices = spotify.devices()
-    return devices
+        scaled_features = scaler.transform(features)
+        labels = kmeans.predict(scaled_features)
+        label_count = {}
+        for label in labels:
+            if str(label) in label_count.keys():
+                label_count[str(label)] += 1
+            else:
+                label_count[str(label)] = 1
+        return label_count
 
 
-@app.route('/api/select_top_song')
-def select_top_song():
-    spotify = handle_auth()
-    # logic
-    label_count = analyse_my_top_tracks()
-    choice = random.choices(list(label_count), list(label_count.values()), k=1)
-
-    all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
-    filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
-        choice[0]))]
-    selected_track = random.choices(filtered_tracks["id"].values.tolist(
-    ), filtered_tracks["popularity"].values.tolist())
-
-    track_info = spotify.track(selected_track[0])
-
-    spotify.start_playback(uris=[track_info["uri"]])
-
-    return track_info
+@api.route('/devices')
+class Devices(Resource):
+    def get(self):
+        spotify = handle_auth()
+        devices = spotify.devices()
+        return devices
 
 
-@app.route('/api/currently_playing')
-def currently_playing():
-    spotify = handle_auth()
-    track = spotify.current_user_playing_track()
-    if track is not None:
-        return track
-    return {"is_playing": False}
+@api.route('/select_top_song')
+class TopSong(Resource):
+    def get(self):
+        spotify = handle_auth()
+        # logic
+        analyseTopTracks = AnalyseTopTracks()
+        label_count = analyseTopTracks.get()
+        choice = random.choices(
+            list(label_count), list(label_count.values()), k=1)
+
+        all_tracks_labeled = pd.read_csv("ml/data/spotify_data_labeled.csv")
+        filtered_tracks = all_tracks_labeled[(all_tracks_labeled["label"] == int(
+            choice[0]))]
+        selected_track = random.choices(filtered_tracks["id"].values.tolist(
+        ), filtered_tracks["popularity"].values.tolist())
+
+        track_info = spotify.track(selected_track[0])
+
+        spotify.start_playback(uris=[track_info["uri"]])
+
+        return track_info
 
 
-@app.route('/api/current_user')
-def current_user():
-    spotify = handle_auth()
-    return spotify.current_user()
+@api.route('/currently_playing')
+class CurrentlyPlaying(Resource):
+    def get(self):
+        spotify = handle_auth()
+        track = spotify.current_user_playing_track()
+        if track is not None:
+            return track
+        return {"is_playing": False}
+
+
+@api.route('/current_user')
+class CurrentUser(Resource):
+    def get(self):
+        spotify = handle_auth()
+        return spotify.current_user()
 
 
 '''
